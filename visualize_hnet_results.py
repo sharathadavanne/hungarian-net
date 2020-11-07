@@ -20,14 +20,15 @@ for _ in range(20):
     feat, labels = test_data.__getitem__(random.choice(range(len(test_data))))
     feat = torch.tensor(feat).unsqueeze(0).to(device).float()
     hidden = torch.zeros(1, 1, 128)
-    pred,pred2, hidden = model(feat, hidden)
+    pred, pred2, hidden = model(feat, hidden)
+    pred = pred.squeeze().sigmoid().clone().detach().numpy()
 
     print(feat.squeeze().numpy().reshape(max_len,max_len))
-    print(pred.squeeze().reshape(max_len, max_len))
+    print(pred.reshape(max_len, max_len))
     print(labels[0].squeeze().reshape(max_len, max_len))
+    print(labels[1].squeeze())
     print('\n\n')
 
-    pred = pred.squeeze().sigmoid().clone().detach().numpy()
     plot.plot(labels[0].reshape(-1), label='ref', color='red', linestyle='dashed', marker='o',  markerfacecolor='green', markersize=8)
     plot.plot(pred, label='predicted', color='blue')
     plot.legend()

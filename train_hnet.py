@@ -89,9 +89,7 @@ class HungarianDataset(Dataset):
         if train:
             loc_wts = np.zeros(self.max_len**2)
             for i in range(len(self.data_dict)):
-                label = np.zeros((self.max_len, self.max_len))
-                nb_rows, nb_cols = self.data_dict[i][2].shape
-                label[:nb_rows, :nb_cols] = self.data_dict[i][3]
+                label = self.data_dict[i][3]
                 loc_wts += label.reshape(-1)
             self.f_scr_wts = loc_wts / len(self.data_dict)
             self.pos_wts = (len(self.data_dict)-loc_wts) / loc_wts
@@ -106,15 +104,9 @@ class HungarianDataset(Dataset):
         return self.f_scr_wts
 
     def __getitem__(self, idx):
-        feat = -1*np.ones((self.max_len, self.max_len))
-        label = np.zeros((self.max_len, self.max_len))
+        feat = self.data_dict[idx][2]
+        label = self.data_dict[idx][3]
 
-        nb_rows, nb_cols = self.data_dict[idx][2].shape
-
-        feat[:nb_rows, :nb_cols] = self.data_dict[idx][2]
-        label[:nb_rows, :nb_cols] = self.data_dict[idx][3]
-
-        # feat = feat.reshapeself.max_len, self.max_len)
         label = [label.reshape(-1), label.sum(-1)]
         return feat, label
 
