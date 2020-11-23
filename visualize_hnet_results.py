@@ -13,7 +13,7 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 model = HNetGRU(max_len=max_len).to(device)
 model.eval()
 
-model.load_state_dict(torch.load("data/best_model.pt" ))
+model.load_state_dict(torch.load("data/hnet_model.pt" ))
 test_data = HungarianDataset(train=False, max_len=max_len)
 
 for _ in range(20):

@@ -4,7 +4,7 @@ import pickle
 from IPython import  embed
 eps = np.finfo(np.float).eps
 from scipy.optimize import linear_sum_assignment
-
+from scipy.spatial import distance
 
 def sph2cart(azimuth, elevation, r):
     '''
@@ -38,7 +38,7 @@ def main():
     
     max_doas = 2
     doa_ind_range = range(max_doas)
-    sample_range = np.array([100, 2000, 4000, 6000, 8000])
+    sample_range = np.array([200, 4000, 8000, 16000, 16000])
 
     # Generate training data
     data_dict = {}
@@ -56,30 +56,30 @@ def main():
                     pred_ang = np.array((random.sample(azi_range, nb_pred), random.sample(ele_range, nb_pred))).T
 
                     # initialize fixed length vector
-                    ref_cart, pred_cart = np.zeros((max_doas, 3)), np.zeros((max_doas, 3))
-                    ref_cart[:, -1], pred_cart[:, -1] = 1, 1
+                    ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
 
                     # Convert to cartesian vectors
                     ref_ang_rad, pred_ang_rad = ref_ang * np.pi / 180., pred_ang * np.pi / 180.
-                    ref_cart[random.sample(doa_ind_range, nb_ref), :] = sph2cart(ref_ang_rad[:, 0], ref_ang_rad[:, 1], np.ones(nb_ref)).T
-                    pred_cart[random.sample(doa_ind_range, nb_pred), :] = sph2cart(pred_ang_rad[:, 0], pred_ang_rad[:, 1], np.ones(nb_pred)).T
+                    ref_cart[:nb_ref, :] = sph2cart(ref_ang_rad[:, 0], ref_ang_rad[:, 1], np.ones(nb_ref)).T
+                    pred_cart[:nb_pred, :] = sph2cart(pred_ang_rad[:, 0], pred_ang_rad[:, 1], np.ones(nb_pred)).T
 
-                    # Compute distance matrix between reference and predicted
-                    ref_cart_norm, pred_cart_norm = np.sqrt(np.sum(ref_cart**2, 1) + eps), np.sqrt(np.sum(pred_cart**2, 1) + eps)
-                    ref_cart, pred_cart = ref_cart/ref_cart_norm[np.newaxis].T, pred_cart/pred_cart_norm[np.newaxis].T
-
-                    dist_mat = np.dot(ref_cart, pred_cart.T)
-                    dist_mat = np.clip(dist_mat, -1, 1)
-                    dist_mat = np.arccos(dist_mat)
-
-                    # #Choose only the relevant subset of the distance matrix
-                    # act_dist_mat = dist_mat[:nb_ref, :nb_pred]
+                    # Compute distance matrix
+                    dist_mat = distance.cdist(ref_cart, pred_cart, 'minkowski', p=2.)
 
                     # Compute data association matrix
-                    row_ind, col_ind = linear_sum_assignment(dist_mat)
+                    act_dist_mat = dist_mat[:nb_ref, :nb_pred]
+                    row_ind, col_ind = linear_sum_assignment(act_dist_mat)
                     da_mat = np.zeros((max_doas, max_doas))
                     da_mat[row_ind, col_ind] = 1
 
+                    #randomly shuffle dist and da matrices
+                    rand_ind = random.sample(range(max_doas), max_doas)
+                    if random.random()>0.5:
+                        dist_mat = dist_mat[rand_ind, :]
+                        da_mat = da_mat[rand_ind, :]
+                    else:
+                        dist_mat = dist_mat[:, rand_ind]
+                        da_mat = da_mat[:, rand_ind]
                     data_dict[cnt] = [nb_ref, nb_pred, dist_mat, da_mat, ref_cart, pred_cart]
                     cnt += 1
     out_filename = 'data/{}_train'.format(pickle_filename)
@@ -89,7 +89,7 @@ def main():
     # Generate testing data
     data_dict = {}
     cnt = 0
-    for resolution in [1, 2, 3, 4, 5, 10, 15, 20, 30, 40]:
+    for resolution in [1, 2, 3, 4, 5, 10, 15, 20, 30]:
         azi_range = range(-180, 180, resolution)
         ele_range = range(-90, 91, resolution)
         for nb_ref in range(max_doas+1):
@@ -101,30 +101,30 @@ def main():
                     pred_ang = np.array((random.sample(azi_range, nb_pred), random.sample(ele_range, nb_pred))).T
 
                     # initialize fixed length vector
-                    ref_cart, pred_cart = np.zeros((max_doas, 3)), np.zeros((max_doas, 3))
-                    ref_cart[:, -1], pred_cart[:, -1] = 1, 1
+                    ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
 
                     # Convert to cartesian vectors
                     ref_ang_rad, pred_ang_rad = ref_ang * np.pi / 180., pred_ang * np.pi / 180.
-                    ref_cart[random.sample(doa_ind_range, nb_ref), :] = sph2cart(ref_ang_rad[:, 0], ref_ang_rad[:, 1], np.ones(nb_ref)).T
-                    pred_cart[random.sample(doa_ind_range, nb_pred), :] = sph2cart(pred_ang_rad[:, 0], pred_ang_rad[:, 1], np.ones(nb_pred)).T
+                    ref_cart[:nb_ref, :] = sph2cart(ref_ang_rad[:, 0], ref_ang_rad[:, 1], np.ones(nb_ref)).T
+                    pred_cart[:nb_pred, :] = sph2cart(pred_ang_rad[:, 0], pred_ang_rad[:, 1], np.ones(nb_pred)).T
 
-                    # Compute distance matrix between reference and predicted
-                    ref_cart_norm, pred_cart_norm = np.sqrt(np.sum(ref_cart**2, 1) + 1e-10), np.sqrt(np.sum(pred_cart**2, 1) + 1e-10)
-                    ref_cart, pred_cart = ref_cart/ref_cart_norm[np.newaxis].T, pred_cart/pred_cart_norm[np.newaxis].T
-
-                    dist_mat = np.dot(ref_cart, pred_cart.T)
-                    dist_mat = np.clip(dist_mat, -1, 1)
-                    dist_mat = np.arccos(dist_mat)
-
-                    # #Choose only the relevant subset of the distance matrix
-                    # act_dist_mat = dist_mat[:nb_ref, :nb_pred]
+                    # Compute distance matrix
+                    dist_mat = distance.cdist(ref_cart, pred_cart, 'minkowski', p=2.)
 
                     # Compute data association matrix
-                    row_ind, col_ind = linear_sum_assignment(dist_mat)
+                    act_dist_mat = dist_mat[:nb_ref, :nb_pred]
+                    row_ind, col_ind = linear_sum_assignment(act_dist_mat)
                     da_mat = np.zeros((max_doas, max_doas))
                     da_mat[row_ind, col_ind] = 1
 
+                    #randomly shuffle dist and da matrices
+                    rand_ind = random.sample(range(max_doas), max_doas)
+                    if random.random()>0.5:
+                        dist_mat = dist_mat[rand_ind, :]
+                        da_mat = da_mat[rand_ind, :]
+                    else:
+                        dist_mat = dist_mat[:, rand_ind]
+                        da_mat = da_mat[:, rand_ind]
                     data_dict[cnt] = [nb_ref, nb_pred, dist_mat, da_mat, ref_cart, pred_cart]
                     cnt += 1
     out_filename = 'data/{}_test'.format(pickle_filename)

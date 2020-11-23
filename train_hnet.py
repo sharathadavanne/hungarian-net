@@ -205,7 +205,7 @@ def main():
         if test_f > best_loss:
             best_loss = test_f
             best_epoch = epoch
-            torch.save(model.state_dict(), "data/best_model.pt")
+            torch.save(model.state_dict(), "data/hnet_model.pt")
         print('Epoch: {}\ttrain_loss: {:.4f} ({:.4f}, {:.4f})\ttest_loss: {:.4f} ({:.4f}, {:.4f})\tf_scr: {:.4f}\tbest_epoch: {}\tbest_f_scr: {:.4f}'.format(epoch, train_loss, train_l1, train_l2, test_loss, test_l1, test_l2, test_f, best_epoch, best_loss))
     print('Best epoch: {}\nBest loss: {}'.format(best_epoch, best_loss))
 
