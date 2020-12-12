@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 from sklearn.metrics import f1_score
-
+import time
 
 class AttentionLayer(nn.Module):
     def __init__(self, in_channels, out_channels, key_channels):
@@ -116,21 +116,20 @@ def main():
     nb_epochs = 1000
     max_len = 2
 
-    use_cuda = False
+    use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     train_dataset = HungarianDataset(train=True, max_len=max_len)
     train_loader = DataLoader(
         train_dataset,
-        batch_size=batch_size, shuffle=True, drop_last=True, **kwargs)
+        batch_size=batch_size, shuffle=True, drop_last=True)
 
     f_score_weights = np.tile(train_dataset.get_f_wts(), batch_size)
     print(train_dataset.get_f_wts())
 
     test_loader = DataLoader(
         HungarianDataset(train=False, max_len=max_len),
-        batch_size=batch_size, shuffle=True, drop_last=True, **kwargs)
+        batch_size=batch_size, shuffle=True, drop_last=True)
 
     model = HNetGRU(max_len=max_len).to(device)
     optimizer = optim.Adam(model.parameters())
@@ -142,6 +141,7 @@ def main():
     best_loss = -1
     best_epoch = -1
     for epoch in range(1, nb_epochs + 1):
+        train_start = time.time()
         # TRAINING
         model.train()
         train_loss, train_l1, train_l2 = 0, 0, 0
@@ -152,7 +152,7 @@ def main():
 
             optimizer.zero_grad()
 
-            hidden = model.initHidden()
+            hidden = model.initHidden().to(device)
             output1, output2, hidden = model(data, hidden)
 
             l1 = criterion1(output1, target1)
@@ -169,8 +169,9 @@ def main():
         train_l1 /= len(train_loader.dataset)
         train_l2 /= len(train_loader.dataset)
         train_loss /= len(train_loader.dataset)
-
+        train_time = time.time()-train_start
         #TESTING
+        test_start = time.time()
         model.eval()
         test_loss, test_l1, test_l2 = 0, 0, 0
         test_f = 0
@@ -181,7 +182,7 @@ def main():
                 target1 = target[0].to(device).float()
                 target2 = target[1].to(device).float()
 
-                hidden = model.initHidden()
+                hidden = model.initHidden().to(device)
 
                 output1, output2, hidden = model(data, hidden)
                 l1 = criterion1(output1, target1)
@@ -192,8 +193,8 @@ def main():
                 test_l2 += l2.item()
                 test_loss += loss.item()  # sum up batch loss
 
-                f_pred = (torch.sigmoid(output1).numpy() > 0.5).reshape(-1)
-                f_ref = target1.numpy().reshape(-1)
+                f_pred = (torch.sigmoid(output1).cpu().numpy() > 0.5).reshape(-1)
+                f_ref = target1.cpu().numpy().reshape(-1)
                 test_f += f1_score(f_ref, f_pred, zero_division=1, average='weighted', sample_weight=f_score_weights)
                 nb_test_batches += 1
 
@@ -201,12 +202,12 @@ def main():
         test_l2 /= len(test_loader.dataset)
         test_loss /= len(test_loader.dataset)
         test_f /= nb_test_batches
-
+        test_time = time.time() - test_start
         if test_f > best_loss:
             best_loss = test_f
             best_epoch = epoch
             torch.save(model.state_dict(), "data/hnet_model.pt")
-        print('Epoch: {}\ttrain_loss: {:.4f} ({:.4f}, {:.4f})\ttest_loss: {:.4f} ({:.4f}, {:.4f})\tf_scr: {:.4f}\tbest_epoch: {}\tbest_f_scr: {:.4f}'.format(epoch, train_loss, train_l1, train_l2, test_loss, test_l1, test_l2, test_f, best_epoch, best_loss))
+        print('Epoch: {}\t time: {:0.2f}/{:0.2f}\ttrain_loss: {:.4f} ({:.4f}, {:.4f})\ttest_loss: {:.4f} ({:.4f}, {:.4f})\tf_scr: {:.4f}\tbest_epoch: {}\tbest_f_scr: {:.4f}'.format(epoch, train_time, test_time, train_loss, train_l1, train_l2, test_loss, test_l1, test_l2, test_f, best_epoch, best_loss))
     print('Best epoch: {}\nBest loss: {}'.format(best_epoch, best_loss))
 
 

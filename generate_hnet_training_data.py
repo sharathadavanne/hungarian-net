@@ -38,7 +38,7 @@ def main():
     
     max_doas = 2
     doa_ind_range = range(max_doas)
-    sample_range = np.array([200, 4000, 8000, 16000, 16000])
+    sample_range = np.array([200, 2000, 4000, 8000, 16000])
 
     # Generate training data
     data_dict = {}
@@ -56,7 +56,10 @@ def main():
                     pred_ang = np.array((random.sample(azi_range, nb_pred), random.sample(ele_range, nb_pred))).T
 
                     # initialize fixed length vector
-                    ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                    if random.random()>0.5:
+                        ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                    else:
+                        ref_cart, pred_cart = 10*np.ones((max_doas, 3)), 10*np.ones((max_doas, 3))
 
                     # Convert to cartesian vectors
                     ref_ang_rad, pred_ang_rad = ref_ang * np.pi / 180., pred_ang * np.pi / 180.
@@ -101,7 +104,10 @@ def main():
                     pred_ang = np.array((random.sample(azi_range, nb_pred), random.sample(ele_range, nb_pred))).T
 
                     # initialize fixed length vector
-                    ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                    if random.random()>0.5:
+                        ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                    else:
+                        ref_cart, pred_cart = 10*np.ones((max_doas, 3)), 10*np.ones((max_doas, 3))
 
                     # Convert to cartesian vectors
                     ref_ang_rad, pred_ang_rad = ref_ang * np.pi / 180., pred_ang * np.pi / 180.
