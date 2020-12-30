@@ -34,11 +34,10 @@ def load_obj(name):
 def main():
     #### MAIN ALGO starts here
     pickle_filename = 'hung_data'
-# sample_range = np.array([500, 10000, 20000])
+    sample_range = np.array([500, 10000, 20000])
     
     max_doas = 2
     doa_ind_range = range(max_doas)
-    sample_range = np.array([200, 2000, 4000, 8000, 16000])
 
     # Generate training data
     data_dict = {}
@@ -58,6 +57,7 @@ def main():
                     # initialize fixed length vector
                     if random.random()>0.5:
                         ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                        ref_cart[(ref_cart<=1) & (ref_cart>=-1)], pred_cart[(pred_cart<=1) & (pred_cart>=-1)] = 10, 10
                     else:
                         ref_cart, pred_cart = 10*np.ones((max_doas, 3)), 10*np.ones((max_doas, 3))
 
@@ -106,6 +106,7 @@ def main():
                     # initialize fixed length vector
                     if random.random()>0.5:
                         ref_cart, pred_cart = np.random.uniform(low=-100, high=100, size=(max_doas, 3)), np.random.uniform(low=-100, high=100, size=(max_doas, 3))
+                        ref_cart[(ref_cart<=1) & (ref_cart>=-1)], pred_cart[(pred_cart<=1) & (pred_cart>=-1)] = 10, 10
                     else:
                         ref_cart, pred_cart = 10*np.ones((max_doas, 3)), 10*np.ones((max_doas, 3))
 
