@@ -13,14 +13,13 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 model = HNetGRU(max_len=max_len).to(device)
 model.eval()
 
-model.load_state_dict(torch.load("data/hnet_model.pt" ))
+model.load_state_dict(torch.load("data/hnet_model.pt", map_location=torch.device('cpu')))
 test_data = HungarianDataset(train=False, max_len=max_len)
 
 for _ in range(20):
     feat, labels = test_data.__getitem__(random.choice(range(len(test_data))))
     feat = torch.tensor(feat).unsqueeze(0).to(device).float()
-    hidden = torch.zeros(1, 1, 128)
-    pred, pred2, hidden = model(feat, hidden)
+    pred, _, _ = model(feat)
     pred = pred.squeeze().sigmoid().clone().detach().numpy()
 
     print(feat.squeeze().numpy().reshape(max_len,max_len))
@@ -34,6 +33,7 @@ for _ in range(20):
     plot.legend()
     plot.ylim([0, 1])
     plot.show()
+
 
 
 

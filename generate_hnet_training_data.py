@@ -34,11 +34,10 @@ def load_obj(name):
 def main():
     #### MAIN ALGO starts here
     pickle_filename = 'hung_data'
-    sample_range = np.array([500, 10000, 20000])
+    sample_range = np.array([3000, 5000, 15000])
     
     max_doas = 2
     doa_ind_range = range(max_doas)
-
     # Generate training data
     data_dict = {}
     cnt = 0

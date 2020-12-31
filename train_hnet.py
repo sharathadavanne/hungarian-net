@@ -33,22 +33,18 @@ class AttentionLayer(nn.Module):
 
 
 class HNetGRU(nn.Module):
-    def __init__(self, use_pos_enc=True, max_len=4):
+    def __init__(self, max_len=4):
         super().__init__()
         hidden_size = 128
         self.nb_gru_layers = 1
         self.gru = nn.GRU(max_len, hidden_size, self.nb_gru_layers, batch_first=True)
-        self.gru_hidden_size = hidden_size
         self.attn = AttentionLayer(hidden_size, hidden_size, hidden_size)
         self.fc1 = nn.Linear(hidden_size, max_len)
 
-    def initHidden(self):
-        return torch.zeros(self.nb_gru_layers, 256, self.gru_hidden_size)
-
-    def forward(self, query, hidden):
+    def forward(self, query):
         # query - batch x seq x feature
 
-        out, hidden = self.gru(query, hidden)
+        out, _ = self.gru(query)
         # out - batch x seq x hidden
 
         out = out.permute((0, 2, 1))
@@ -67,11 +63,12 @@ class HNetGRU(nn.Module):
         out1 = out.view(out.shape[0], -1)
         # out1 - batch x (seq x feature)
 
-        # out2 = torch.sum(out, dim=-1)
-        out2, dmp = torch.max(out, dim=-1)
+        out2, _ = torch.max(out, dim=-1)
+
+        out3, _ = torch.max(out, dim=-2)
 
         # out2 - batch x seq x 1
-        return out1.squeeze(), out2.squeeze(), hidden
+        return out1.squeeze(), out2.squeeze(), out3.squeeze()
 
 
 class HungarianDataset(Dataset):
@@ -107,7 +104,7 @@ class HungarianDataset(Dataset):
         feat = self.data_dict[idx][2]
         label = self.data_dict[idx][3]
 
-        label = [label.reshape(-1), label.sum(-1)]
+        label = [label.reshape(-1), label.sum(-1), label.sum(-2)]
         return feat, label
 
 
@@ -136,7 +133,8 @@ def main():
 
     criterion1 = torch.nn.BCEWithLogitsLoss(reduction='sum')
     criterion2 = torch.nn.BCEWithLogitsLoss(reduction='sum')
-    criterion_wts = [1., 1.]
+    criterion3 = torch.nn.BCEWithLogitsLoss(reduction='sum')
+    criterion_wts = [1., 1., 1.]
 
     best_loss = -1
     best_epoch = -1
@@ -144,36 +142,41 @@ def main():
         train_start = time.time()
         # TRAINING
         model.train()
-        train_loss, train_l1, train_l2 = 0, 0, 0
+        train_loss, train_l1, train_l2, train_l3 = 0, 0, 0, 0
         for batch_idx, (data, target) in enumerate(train_loader):
             data = data.to(device).float()
             target1 = target[0].to(device).float()
             target2 = target[1].to(device).float()
+            target3 = target[2].to(device).float()
 
             optimizer.zero_grad()
 
-            hidden = model.initHidden().to(device)
-            output1, output2, hidden = model(data, hidden)
+            output1, output2, output3 = model(data)
 
             l1 = criterion1(output1, target1)
             l2 = criterion2(output2, target2)
-            loss = criterion_wts[0]*l1 + criterion_wts[1]*l2
+            l3 = criterion3(output3, target3)
+            loss = criterion_wts[0]*l1 + criterion_wts[1]*l2 + criterion_wts[2]*l3
 
             loss.backward()
             optimizer.step()
 
             train_l1 += l1.item()
             train_l2 += l2.item()
+            train_l3 += l3.item()
             train_loss += loss.item()
 
         train_l1 /= len(train_loader.dataset)
         train_l2 /= len(train_loader.dataset)
+        train_l3 /= len(train_loader.dataset)
         train_loss /= len(train_loader.dataset)
         train_time = time.time()-train_start
+
+
         #TESTING
         test_start = time.time()
         model.eval()
-        test_loss, test_l1, test_l2 = 0, 0, 0
+        test_loss, test_l1, test_l2, test_l3 = 0, 0, 0, 0
         test_f = 0
         nb_test_batches = 0
         with torch.no_grad():
@@ -181,16 +184,17 @@ def main():
                 data = data.to(device).float()
                 target1 = target[0].to(device).float()
                 target2 = target[1].to(device).float()
+                target3 = target[2].to(device).float()
 
-                hidden = model.initHidden().to(device)
-
-                output1, output2, hidden = model(data, hidden)
+                output1, output2, output3 = model(data)
                 l1 = criterion1(output1, target1)
                 l2 = criterion2(output2, target2)
-                loss = criterion_wts[0]*l1 + criterion_wts[1]*l2
+                l3 = criterion3(output3, target3)
+                loss = criterion_wts[0]*l1 + criterion_wts[1]*l2+ criterion_wts[2]*l3
 
                 test_l1 += l1.item()
                 test_l2 += l2.item()
+                test_l3 += l3.item()
                 test_loss += loss.item()  # sum up batch loss
 
                 f_pred = (torch.sigmoid(output1).cpu().numpy() > 0.5).reshape(-1)
@@ -200,6 +204,7 @@ def main():
 
         test_l1 /= len(test_loader.dataset)
         test_l2 /= len(test_loader.dataset)
+        test_l3 /= len(test_loader.dataset)
         test_loss /= len(test_loader.dataset)
         test_f /= nb_test_batches
         test_time = time.time() - test_start
@@ -207,10 +212,11 @@ def main():
             best_loss = test_f
             best_epoch = epoch
             torch.save(model.state_dict(), "data/hnet_model.pt")
-        print('Epoch: {}\t time: {:0.2f}/{:0.2f}\ttrain_loss: {:.4f} ({:.4f}, {:.4f})\ttest_loss: {:.4f} ({:.4f}, {:.4f})\tf_scr: {:.4f}\tbest_epoch: {}\tbest_f_scr: {:.4f}'.format(epoch, train_time, test_time, train_loss, train_l1, train_l2, test_loss, test_l1, test_l2, test_f, best_epoch, best_loss))
+        print('Epoch: {}\t time: {:0.2f}/{:0.2f}\ttrain_loss: {:.4f} ({:.4f}, {:.4f}, {:.4f})\ttest_loss: {:.4f} ({:.4f}, {:.4f}, {:.4f})\tf_scr: {:.4f}\tbest_epoch: {}\tbest_f_scr: {:.4f}'.format(epoch, train_time, test_time, train_loss, train_l1, train_l2, train_l3, test_loss, test_l1, test_l2, test_l3, test_f, best_epoch, best_loss))
     print('Best epoch: {}\nBest loss: {}'.format(best_epoch, best_loss))
 
 
 if __name__ == "__main__":
     main()
+
 
