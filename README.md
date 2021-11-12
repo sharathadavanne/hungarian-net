@@ -5,7 +5,7 @@ The Hungarian Network (Hnet) is the deep-learning-based implementation of the po
 
 > Sharath Adavanne*, Archontis Politis* and Tuomas Virtanen, "[Differentiable Tracking-Based Training of Deep Learning Sound Source Localizers](https://arxiv.org/pdf/2111.00030.pdf)" in the IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA 2021)
 
-## BASELINE METHOD
+## METHOD
  
 The Hnet architecture is as shown below. The input is the pair-wise distance matrix **D**, that is mapped to the association matrix **A**. 
 
