@@ -111,11 +111,14 @@ class HungarianDataset(Dataset):
 def main():
     batch_size = 256
     nb_epochs = 1000
-    max_len = 2
+    max_len = 2 # maximum number of events/DOAs you want to the hungarian algo to associate,
+    # this is same as 'max_doas' in generate_hnet_training_data.py
 
+    # Check wether to run on cpu or gpu
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
+    # load training dataset
     train_dataset = HungarianDataset(train=True, max_len=max_len)
     train_loader = DataLoader(
         train_dataset,
@@ -124,10 +127,12 @@ def main():
     f_score_weights = np.tile(train_dataset.get_f_wts(), batch_size)
     print(train_dataset.get_f_wts())
 
+    # load validation dataset
     test_loader = DataLoader(
         HungarianDataset(train=False, max_len=max_len),
         batch_size=batch_size, shuffle=True, drop_last=True)
 
+    # load Hnet model and loss functions
     model = HNetGRU(max_len=max_len).to(device)
     optimizer = optim.Adam(model.parameters())
 
@@ -136,6 +141,7 @@ def main():
     criterion3 = torch.nn.BCEWithLogitsLoss(reduction='sum')
     criterion_wts = [1., 1., 1.]
 
+    # Start training
     best_loss = -1
     best_epoch = -1
     for epoch in range(1, nb_epochs + 1):
@@ -208,6 +214,8 @@ def main():
         test_loss /= len(test_loader.dataset)
         test_f /= nb_test_batches
         test_time = time.time() - test_start
+
+        # Early stopping
         if test_f > best_loss:
             best_loss = test_f
             best_epoch = epoch
