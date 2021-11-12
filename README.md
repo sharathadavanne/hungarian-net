@@ -3,7 +3,7 @@
 
 The Hungarian Network (Hnet) is the deep-learning-based implementation of the popular [Hungarian algorithm](https://en.wikipedia.org/wiki/Hungarian_algorithm) that helps solve the assignment problem. Implementing this algorithm using a DNN allows us to integrate it with other deep-learning tasks that require permutation invariant training (PIT) and train them in a completely differentiable manner without the need of PIT. Some examples of deep-learning tasks that required PIT are multi-source localization (DOA estimation), and source separation. One such implementation of [multi-source localization and tracking using Hnet is available here.](https://github.com/sharathadavanne/doa-net) If you want to read more about [generic approaches to sound localizatoin and tracking then check here](https://www.aane.in/research/computational-audio-scene-analysis-casa/sound-event-localization-and-tracking). If you are using this repo in any format, then please consider citing the following paper. 
 
-> Sharath Adavanne*, Archontis Politis* and Tuomas Virtanen, "Differentiable Tracking-Based Training of Deep Learning Sound Source Localizers" in the IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA 2021)
+> Sharath Adavanne*, Archontis Politis* and Tuomas Virtanen, "[Differentiable Tracking-Based Training of Deep Learning Sound Source Localizers](https://arxiv.org/pdf/2111.00030.pdf)" in the IEEE Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA 2021)
 
 ## BASELINE METHOD
  
