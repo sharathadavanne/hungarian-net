@@ -2,7 +2,7 @@ import numpy as np
 import random
 import pickle
 from IPython import  embed
-eps = np.finfo(np.float).eps
+eps = np.finfo(np.float64).eps
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance
 
